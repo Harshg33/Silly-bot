@@ -273,6 +273,41 @@
             transform: translateY(-2px);
         }
         
+        .info-box {
+            background: rgba(0, 114, 255, 0.1);
+            border-left: 4px solid #0072ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .api-config {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .api-config input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .api-config button {
+            padding: 8px 15px;
+            background: #0072ff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
         @media (max-width: 768px) {
             .message {
                 max-width: 90%;
@@ -307,25 +342,29 @@
             <div class="chat-header">
                 <h2><i class="fas fa-robot" style="color: #00c6ff;"></i> Code Assistant</h2>
                 <div class="api-status">
-                    <span class="status-indicator status-simulated" id="status-indicator"></span>
-                    <span id="status-text">Using Simulated Responses</span>
+                    <span class="status-indicator status-disconnected" id="status-indicator"></span>
+                    <span id="status-text">Not Connected to API</span>
                 </div>
             </div>
             
             <div class="chat-messages" id="chat-messages">
                 <div class="message bot-message">
                     <div class="message-content">
-                        Hello! I'm CodeBot, your AI coding assistant. I can help you with programming questions, code examples, and debugging. How can I assist you today?
+                        Hello! I'm CodeBot, your AI coding assistant. I can help you with programming questions, code examples, and debugging.
                     </div>
                 </div>
                 <div class="message bot-message">
                     <div class="message-content">
-                        <p>Since the API connection isn't set up yet, I'm providing simulated responses. Try asking me questions like:</p>
+                        <p>To get started, please configure your API endpoint:</p>
+                        <div class="api-config">
+                            <input type="text" id="api-endpoint" placeholder="Enter your API endpoint (e.g., https://your-app.vercel.app/api/gemini)">
+                            <button id="save-api">Save Endpoint</button>
+                        </div>
+                        <p>Once configured, you can ask me questions like:</p>
                         <div class="quick-questions">
                             <div class="question-chip" data-question="How to reverse a string in JavaScript?">Reverse string in JS</div>
                             <div class="question-chip" data-question="Explain Python list comprehensions">Python list comprehensions</div>
                             <div class="question-chip" data-question="What's the difference between let and var in JavaScript?">let vs var in JS</div>
-                            <div class="question-chip" data-question="How to make an HTTP request in Python?">HTTP request in Python</div>
                         </div>
                     </div>
                 </div>
@@ -338,13 +377,13 @@
             </div>
             
             <div class="chat-input">
-                <input type="text" id="user-input" placeholder="Ask a coding question...">
-                <button id="send-button"><i class="fas fa-paper-plane"></i> Send</button>
+                <input type="text" id="user-input" placeholder="Ask a coding question..." disabled>
+                <button id="send-button" disabled><i class="fas fa-paper-plane"></i> Send</button>
             </div>
         </div>
         
         <footer>
-            <p>Powered by Simulated Gemini API | Connect your real API to enable full functionality</p>
+            <p>Connect your Gemini API to enable full functionality | Designed for Vercel Deployment</p>
         </footer>
     </div>
 
@@ -356,17 +395,96 @@
             const typingIndicator = document.getElementById('typing-indicator');
             const statusIndicator = document.getElementById('status-indicator');
             const statusText = document.getElementById('status-text');
+            const apiEndpointInput = document.getElementById('api-endpoint');
+            const saveApiButton = document.getElementById('save-api');
             
-            // Store conversation history
+            // Store conversation history and API endpoint
             let conversationHistory = [];
+            let apiEndpoint = localStorage.getItem('gemini-api-endpoint') || '';
+            
+            // If API endpoint is already saved, update the UI
+            if (apiEndpoint) {
+                apiEndpointInput.value = apiEndpoint;
+                checkAPIStatus();
+            }
             
             // Add event listeners to question chips
             document.querySelectorAll('.question-chip').forEach(chip => {
                 chip.addEventListener('click', () => {
-                    userInput.value = chip.getAttribute('data-question');
-                    sendButton.disabled = false;
+                    if (apiEndpoint) {
+                        userInput.value = chip.getAttribute('data-question');
+                        sendButton.disabled = false;
+                    } else {
+                        addMessage("Please configure your API endpoint first.", false);
+                    }
                 });
             });
+            
+            // Save API endpoint
+            saveApiButton.addEventListener('click', () => {
+                const endpoint = apiEndpointInput.value.trim();
+                if (endpoint) {
+                    apiEndpoint = endpoint;
+                    localStorage.setItem('gemini-api-endpoint', endpoint);
+                    checkAPIStatus();
+                }
+            });
+            
+            // Function to check if the API is available
+            async function checkAPIStatus() {
+                if (!apiEndpoint) return;
+                
+                try {
+                    setAPIStatus('checking');
+                    const response = await fetch(apiEndpoint, {
+                        method: 'OPTIONS'
+                    });
+                    
+                    if (response.ok) {
+                        setAPIStatus('connected');
+                    } else {
+                        // Try a POST request to check if the API works
+                        const postResponse = await fetch(apiEndpoint, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                message: "test",
+                            }),
+                        });
+                        
+                        if (postResponse.ok) {
+                            setAPIStatus('connected');
+                        } else {
+                            setAPIStatus('disconnected');
+                        }
+                    }
+                } catch (error) {
+                    console.error('API check failed:', error);
+                    setAPIStatus('disconnected');
+                }
+            }
+            
+            // Function to update API status UI
+            function setAPIStatus(status) {
+                if (status === 'connected') {
+                    statusIndicator.className = 'status-indicator status-connected';
+                    statusText.textContent = 'Connected to API';
+                    userInput.disabled = false;
+                    sendButton.disabled = userInput.value.trim() === '';
+                } else if (status === 'checking') {
+                    statusIndicator.className = 'status-indicator status-simulated';
+                    statusText.textContent = 'Checking API connection...';
+                    userInput.disabled = true;
+                    sendButton.disabled = true;
+                } else {
+                    statusIndicator.className = 'status-indicator status-disconnected';
+                    statusText.textContent = 'API not connected';
+                    userInput.disabled = true;
+                    sendButton.disabled = true;
+                }
+            }
             
             // Function to add a message to the chat
             function addMessage(content, isUser = false) {
@@ -401,31 +519,35 @@
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
             
-            // Function to simulate API call to Gemini
-            function callGeminiAPI(question) {
-                return new Promise((resolve) => {
-                    // Simulate API delay
-                    setTimeout(() => {
-                        // Simulated responses based on question content
-                        let response = "";
-                        
-                        if (question.toLowerCase().includes("javascript") && question.toLowerCase().includes("reverse")) {
-                            response = "In JavaScript, you can reverse a string with these methods:\n\n```\n// Using built-in methods\nfunction reverseString(str) {\n    return str.split('').reverse().join('');\n}\n\n// Using a for loop\nfunction reverseStringLoop(str) {\n    let reversed = '';\n    for (let i = str.length - 1; i >= 0; i--) {\n        reversed += str[i];\n    }\n    return reversed;\n}\n\n// Example usage\nconst original = 'Hello';\nconsole.log(reverseString(original)); // 'olleH'\n```";
-                        } else if (question.toLowerCase().includes("python") && question.toLowerCase().includes("list comprehension")) {
-                            response = "List comprehensions in Python provide a concise way to create lists. Here are some examples:\n\n```\n# Basic syntax: [expression for item in iterable]\n\n# Example 1: Squares of numbers\nsquares = [x**2 for x in range(10)]\n\n# Example 2: Filtering with condition\neven_squares = [x**2 for x in range(10) if x % 2 == 0]\n\n# Example 3: Nested loops\nmatrix = [[1, 2], [3, 4], [5, 6]]\nflattened = [num for row in matrix for num in row]\n\n# Example 4: Using with functions\ndef double(x):\n    return x * 2\n\ndoubled = [double(x) for x in range(5)]\n```";
-                        } else if (question.toLowerCase().includes("let") && question.toLowerCase().includes("var")) {
-                            response = "In JavaScript, the main differences between `let` and `var` are:\n\n1. Scope:\n   - `var` is function-scoped\n   - `let` is block-scoped\n\n2. Hoisting:\n   - Both are hoisted, but `var` variables are initialized with `undefined`\n   - `let` variables are not initialized until their definition is evaluated\n\n3. Redeclaration:\n   - `var` can be redeclared in the same scope\n   - `let` cannot be redeclared in the same scope\n\nExample:\n\n```\nfunction example() {\n    if (true) {\n        var varVariable = 'var';\n        let letVariable = 'let';\n    }\n    console.log(varVariable); // 'var' (accessible)\n    console.log(letVariable); // ReferenceError (not accessible)\n}\n```";
-                        } else if (question.toLowerCase().includes("http") && question.toLowerCase().includes("python")) {
-                            response = "In Python, you can make HTTP requests using the `requests` library. Here's how:\n\n```python\n# First install requests if you haven't:\n# pip install requests\n\nimport requests\n\n# GET request\nresponse = requests.get('https://api.example.com/data')\nprint(response.status_code)\nprint(response.json())\n\n# POST request with data\npayload = {'key': 'value'}\nresponse = requests.post('https://api.example.com/post', data=payload)\n\n# With headers\nheaders = {'Authorization': 'Bearer YOUR_TOKEN'}\nresponse = requests.get('https://api.example.com/protected', headers=headers)\n\n# Handling errors\ntry:\n    response = requests.get('https://api.example.com/data', timeout=5)\n    response.raise_for_status()  # Raises exception for 4xx/5xx responses\n    data = response.json()\nexcept requests.exceptions.RequestException as e:\n    print(f'Error: {e}')\n```";
-                        } else if (question.toLowerCase().includes("api") && question.toLowerCase().includes("connect")) {
-                            response = "To connect to the real Gemini API:\n\n1. Get an API key from Google AI Studio (https://makersuite.google.com/)\n2. Create a serverless function at `/api/gemini.js` in your Vercel project\n3. Add your API key to Vercel environment variables as `GEMINI_API_KEY`\n4. Deploy your project to Vercel\n\nYour serverless function should handle the API calls to keep your key secure.";
-                        } else {
-                            response = "I can help with that! For the question: \"" + question + "\", here's what I would provide if connected to the Gemini API:\n\n- Explanation of the concept\n- Code examples in the relevant language\n- Best practices and considerations\n- Additional resources for learning more\n\nTo implement this fully, you would need to:\n\n1. Get an API key from Google's Gemini API\n2. Set up a serverless function on Vercel to handle the API calls\n3. Connect this frontend to your serverless function";
-                        }
-                        
-                        resolve(response);
-                    }, 2000);
-                });
+            // Function to call the REAL Gemini API through your serverless function
+            async function callGeminiAPI(message) {
+                if (!apiEndpoint) {
+                    throw new Error('API endpoint not configured');
+                }
+                
+                try {
+                    const response = await fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            history: conversationHistory
+                        }),
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'API request failed');
+                    }
+                    
+                    const data = await response.json();
+                    return data.response;
+                } catch (error) {
+                    console.error('Error calling API:', error);
+                    throw error;
+                }
             }
             
             // Function to handle sending a message
@@ -435,6 +557,7 @@
                 
                 // Add user message to chat
                 addMessage(message, true);
+                conversationHistory.push({ role: 'user', parts: [{ text: message }] });
                 userInput.value = '';
                 sendButton.disabled = true;
                 
@@ -443,20 +566,21 @@
                 chatMessages.scrollTop = chatMessages.scrollHeight;
                 
                 try {
-                    // Call the Gemini API (simulated for now)
+                    // Call the Gemini API
                     const response = await callGeminiAPI(message);
                     
                     // Hide typing indicator
                     typingIndicator.style.display = 'none';
                     
-                    // Add bot response to chat
+                    // Add bot response to chat and history
                     addMessage(response);
+                    conversationHistory.push({ role: 'model', parts: [{ text: response }] });
                 } catch (error) {
                     // Hide typing indicator
                     typingIndicator.style.display = 'none';
                     
                     // Show error message
-                    addMessage("Sorry, I encountered an error processing your request. Please try again later.");
+                    addMessage("Sorry, I encountered an error: " + error.message, false);
                     console.error("Error:", error);
                 }
             }
@@ -465,14 +589,16 @@
             sendButton.addEventListener('click', sendMessage);
             
             userInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && !sendButton.disabled) {
                     sendMessage();
                 }
             });
             
             // Enable send button when user starts typing
             userInput.addEventListener('input', () => {
-                sendButton.disabled = userInput.value.trim() === '';
+                if (apiEndpoint) {
+                    sendButton.disabled = userInput.value.trim() === '';
+                }
             });
         });
     </script>

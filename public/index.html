@@ -6,7 +6,294 @@
     <title>CodeBot - AI Coding Assistant</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Your existing CSS styles here */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00c6ff, #0072ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        header p {
+            color: #ccc;
+            font-size: 1.1rem;
+        }
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .chat-header {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .chat-header h2 {
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 60vh;
+        }
+        
+        .message {
+            max-width: 80%;
+            padding: 15px;
+            border-radius: 15px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-message {
+            align-self: flex-end;
+            background: linear-gradient(90deg, #0072ff, #00c6ff);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .bot-message {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .message-content {
+            white-space: pre-wrap;
+        }
+        
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            border-left: 4px solid #0072ff;
+        }
+        
+        .chat-input {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+            outline: none;
+        }
+        
+        .chat-input input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .chat-input button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(90deg, #0072ff, #00c6ff);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .chat-input button:hover {
+            transform: scale(1.05);
+        }
+        
+        .chat-input button:disabled {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            margin-bottom: 10px;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .typing-indicator span {
+            height: 10px;
+            width: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            animation: typing 1s infinite;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+        
+        .error-message {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid #ff6b6b;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .api-status {
+            margin-left: auto;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-connected {
+            background-color: #4caf50;
+        }
+        
+        .status-disconnected {
+            background-color: #f44336;
+        }
+        
+        .status-simulated {
+            background-color: #ff9800;
+        }
+        
+        .quick-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+            justify-content: center;
+        }
+        
+        .question-chip {
+            background: rgba(0, 114, 255, 0.2);
+            border: 1px solid rgba(0, 114, 255, 0.5);
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .question-chip:hover {
+            background: rgba(0, 114, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 768px) {
+            .message {
+                max-width: 90%;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            .chat-input {
+                flex-direction: column;
+            }
+            
+            .chat-input button {
+                width: 100%;
+            }
+            
+            .quick-questions {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
@@ -18,14 +305,28 @@
         
         <div class="chat-container">
             <div class="chat-header">
-                <i class="fas fa-robot fa-2x" style="color: #00c6ff; margin-right: 10px;"></i>
-                <h2>Code Assistant</h2>
+                <h2><i class="fas fa-robot" style="color: #00c6ff;"></i> Code Assistant</h2>
+                <div class="api-status">
+                    <span class="status-indicator status-simulated" id="status-indicator"></span>
+                    <span id="status-text">Using Simulated Responses</span>
+                </div>
             </div>
             
             <div class="chat-messages" id="chat-messages">
                 <div class="message bot-message">
                     <div class="message-content">
                         Hello! I'm CodeBot, your AI coding assistant. I can help you with programming questions, code examples, and debugging. How can I assist you today?
+                    </div>
+                </div>
+                <div class="message bot-message">
+                    <div class="message-content">
+                        <p>Since the API connection isn't set up yet, I'm providing simulated responses. Try asking me questions like:</p>
+                        <div class="quick-questions">
+                            <div class="question-chip" data-question="How to reverse a string in JavaScript?">Reverse string in JS</div>
+                            <div class="question-chip" data-question="Explain Python list comprehensions">Python list comprehensions</div>
+                            <div class="question-chip" data-question="What's the difference between let and var in JavaScript?">let vs var in JS</div>
+                            <div class="question-chip" data-question="How to make an HTTP request in Python?">HTTP request in Python</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -43,7 +344,7 @@
         </div>
         
         <footer>
-            <p>Powered by Gemini API | Designed for Vercel Deployment</p>
+            <p>Powered by Simulated Gemini API | Connect your real API to enable full functionality</p>
         </footer>
     </div>
 
@@ -53,9 +354,19 @@
             const userInput = document.getElementById('user-input');
             const sendButton = document.getElementById('send-button');
             const typingIndicator = document.getElementById('typing-indicator');
+            const statusIndicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
             
             // Store conversation history
             let conversationHistory = [];
+            
+            // Add event listeners to question chips
+            document.querySelectorAll('.question-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    userInput.value = chip.getAttribute('data-question');
+                    sendButton.disabled = false;
+                });
+            });
             
             // Function to add a message to the chat
             function addMessage(content, isUser = false) {
@@ -90,31 +401,31 @@
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
             
-            // Function to call the Gemini API
-            async function callGeminiAPI(message) {
-                try {
-                    const response = await fetch('/api/gemini', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            message: message,
-                            history: conversationHistory
-                        }),
-                    });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'API request failed');
-                    }
-                    
-                    const data = await response.json();
-                    return data.response;
-                } catch (error) {
-                    console.error('Error calling API:', error);
-                    throw error;
-                }
+            // Function to simulate API call to Gemini
+            function callGeminiAPI(question) {
+                return new Promise((resolve) => {
+                    // Simulate API delay
+                    setTimeout(() => {
+                        // Simulated responses based on question content
+                        let response = "";
+                        
+                        if (question.toLowerCase().includes("javascript") && question.toLowerCase().includes("reverse")) {
+                            response = "In JavaScript, you can reverse a string with these methods:\n\n```\n// Using built-in methods\nfunction reverseString(str) {\n    return str.split('').reverse().join('');\n}\n\n// Using a for loop\nfunction reverseStringLoop(str) {\n    let reversed = '';\n    for (let i = str.length - 1; i >= 0; i--) {\n        reversed += str[i];\n    }\n    return reversed;\n}\n\n// Example usage\nconst original = 'Hello';\nconsole.log(reverseString(original)); // 'olleH'\n```";
+                        } else if (question.toLowerCase().includes("python") && question.toLowerCase().includes("list comprehension")) {
+                            response = "List comprehensions in Python provide a concise way to create lists. Here are some examples:\n\n```\n# Basic syntax: [expression for item in iterable]\n\n# Example 1: Squares of numbers\nsquares = [x**2 for x in range(10)]\n\n# Example 2: Filtering with condition\neven_squares = [x**2 for x in range(10) if x % 2 == 0]\n\n# Example 3: Nested loops\nmatrix = [[1, 2], [3, 4], [5, 6]]\nflattened = [num for row in matrix for num in row]\n\n# Example 4: Using with functions\ndef double(x):\n    return x * 2\n\ndoubled = [double(x) for x in range(5)]\n```";
+                        } else if (question.toLowerCase().includes("let") && question.toLowerCase().includes("var")) {
+                            response = "In JavaScript, the main differences between `let` and `var` are:\n\n1. Scope:\n   - `var` is function-scoped\n   - `let` is block-scoped\n\n2. Hoisting:\n   - Both are hoisted, but `var` variables are initialized with `undefined`\n   - `let` variables are not initialized until their definition is evaluated\n\n3. Redeclaration:\n   - `var` can be redeclared in the same scope\n   - `let` cannot be redeclared in the same scope\n\nExample:\n\n```\nfunction example() {\n    if (true) {\n        var varVariable = 'var';\n        let letVariable = 'let';\n    }\n    console.log(varVariable); // 'var' (accessible)\n    console.log(letVariable); // ReferenceError (not accessible)\n}\n```";
+                        } else if (question.toLowerCase().includes("http") && question.toLowerCase().includes("python")) {
+                            response = "In Python, you can make HTTP requests using the `requests` library. Here's how:\n\n```python\n# First install requests if you haven't:\n# pip install requests\n\nimport requests\n\n# GET request\nresponse = requests.get('https://api.example.com/data')\nprint(response.status_code)\nprint(response.json())\n\n# POST request with data\npayload = {'key': 'value'}\nresponse = requests.post('https://api.example.com/post', data=payload)\n\n# With headers\nheaders = {'Authorization': 'Bearer YOUR_TOKEN'}\nresponse = requests.get('https://api.example.com/protected', headers=headers)\n\n# Handling errors\ntry:\n    response = requests.get('https://api.example.com/data', timeout=5)\n    response.raise_for_status()  # Raises exception for 4xx/5xx responses\n    data = response.json()\nexcept requests.exceptions.RequestException as e:\n    print(f'Error: {e}')\n```";
+                        } else if (question.toLowerCase().includes("api") && question.toLowerCase().includes("connect")) {
+                            response = "To connect to the real Gemini API:\n\n1. Get an API key from Google AI Studio (https://makersuite.google.com/)\n2. Create a serverless function at `/api/gemini.js` in your Vercel project\n3. Add your API key to Vercel environment variables as `GEMINI_API_KEY`\n4. Deploy your project to Vercel\n\nYour serverless function should handle the API calls to keep your key secure.";
+                        } else {
+                            response = "I can help with that! For the question: \"" + question + "\", here's what I would provide if connected to the Gemini API:\n\n- Explanation of the concept\n- Code examples in the relevant language\n- Best practices and considerations\n- Additional resources for learning more\n\nTo implement this fully, you would need to:\n\n1. Get an API key from Google's Gemini API\n2. Set up a serverless function on Vercel to handle the API calls\n3. Connect this frontend to your serverless function";
+                        }
+                        
+                        resolve(response);
+                    }, 2000);
+                });
             }
             
             // Function to handle sending a message
@@ -124,29 +435,28 @@
                 
                 // Add user message to chat
                 addMessage(message, true);
-                conversationHistory.push({ role: 'user', parts: [{ text: message }] });
                 userInput.value = '';
+                sendButton.disabled = true;
                 
                 // Show typing indicator
                 typingIndicator.style.display = 'block';
                 chatMessages.scrollTop = chatMessages.scrollHeight;
                 
                 try {
-                    // Call the Gemini API
+                    // Call the Gemini API (simulated for now)
                     const response = await callGeminiAPI(message);
                     
                     // Hide typing indicator
                     typingIndicator.style.display = 'none';
                     
-                    // Add bot response to chat and history
+                    // Add bot response to chat
                     addMessage(response);
-                    conversationHistory.push({ role: 'model', parts: [{ text: response }] });
                 } catch (error) {
                     // Hide typing indicator
                     typingIndicator.style.display = 'none';
                     
                     // Show error message
-                    addMessage("Sorry, I encountered an error: " + error.message);
+                    addMessage("Sorry, I encountered an error processing your request. Please try again later.");
                     console.error("Error:", error);
                 }
             }
@@ -158,6 +468,11 @@
                 if (e.key === 'Enter') {
                     sendMessage();
                 }
+            });
+            
+            // Enable send button when user starts typing
+            userInput.addEventListener('input', () => {
+                sendButton.disabled = userInput.value.trim() === '';
             });
         });
     </script>
